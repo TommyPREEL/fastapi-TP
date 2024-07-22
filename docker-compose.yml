@@ -3,6 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: myusername/fastapiapp:latest
+    image: tommypreel/fastapiapp:latest
     ports:
       - "8000:8000"
