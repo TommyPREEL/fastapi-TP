@@ -1,8 +1,8 @@
 services:
-  app:
+  web:
     build:
-      context: .
-    image: tommypreel/fastapiapp
-    container_name: fastapi
-    expose:
-      - "8000"
+      context: ./fastapi  # Assurez-vous que ce chemin est correct
+      dockerfile: Dockerfile
+    image: myusername/fastapiapp:latest  # Remplacez 'myusername' par votre nom d'utilisateur Docker Hub
+    ports:
+      - "8000:8000"
