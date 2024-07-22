@@ -70,13 +70,13 @@ jobs:
         echo "$SSH_PRIVATE_KEY" > id_rsa
         chmod 600 id_rsa
         ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
-          cd /home/***/myfastapiapp/fastapi-TP
+          cd /home/***/myfastapiapp
           ls -l  # Vérifie le contenu du répertoire
           if [ -f docker-compose.yml ]; then
             docker-compose pull
             docker-compose up -d
           else
-            echo "docker-compose.yml not found in /home/***/myfastapiapp/fastapi-TP"
+            echo "docker-compose.yml not found in /home/***/myfastapiapp"
             exit 1
           fi
         EOF
