@@ -60,9 +60,10 @@ jobs:
     #     password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Log in to Docker Hub
-      run: |
-        docker login registry-1.docker.io -u ${{ secrets.DOCKER_USERNAME }} | ${{ secrets.DOCKER_PASSWORD }}
-        # echo ${{ secrets.DOCKER_PASSWORD }} | echo ${{ secrets.DOCKER_USERNAME }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      # docker login registry-1.docker.io -u ${{ secrets.DOCKER_USERNAME }} | ${{ secrets.DOCKER_PASSWORD }} --password-stdin
+      # echo ${{ secrets.DOCKER_PASSWORD }} | echo ${{ secrets.DOCKER_USERNAME }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+      
         
     - name: Build and push Docker image
       run: |
