@@ -29,6 +29,7 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
 
+    # Uncomment the following lines if you have tests
     # - name: Run tests
     #   run: |
     #     source venv/bin/activate
@@ -69,9 +70,19 @@ jobs:
       run: |
         echo "$SSH_PRIVATE_KEY" > id_rsa
         chmod 600 id_rsa
+
+        # Ajoutez une étape pour vérifier l'authentification SSH
+        ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST "echo 'SSH connection successful'"
+
+        # Copier les fichiers sur l'instance EC2
+        scp -i id_rsa -o StrictHostKeyChecking=no -r . $USER@$HOST:/home/***/myfastapiapp
+
+        # Vérifiez que les fichiers ont été copiés
+        ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST "ls -l /home/***/myfastapiapp"
+
+        # Passer dans le répertoire et exécuter les commandes Docker
         ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
           cd /home/***/myfastapiapp
-          ls -l  # Vérifie le contenu du répertoire
           if [ -f docker-compose.yml ]; then
             docker-compose pull
             docker-compose up -d
