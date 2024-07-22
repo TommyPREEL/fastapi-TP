@@ -58,7 +58,6 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        cd fastapi  # Assurez-vous de changer le répertoire vers le bon contexte
         docker-compose build
         docker-compose push
 
