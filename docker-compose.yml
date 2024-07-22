@@ -2,6 +2,7 @@ services:
   app:
     build:
       context: .
+    image: fastapiapp
     container_name: fastapi
     expose:
       - "8000"
