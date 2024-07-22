@@ -80,8 +80,10 @@ jobs:
         # Vérifiez que les fichiers ont été copiés
         ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST "ls -l /home/***/myfastapiapp"
 
-        # Passer dans le répertoire et exécuter les commandes Docker
+        # Forcer l'arrêt et la suppression des conteneurs existants
         ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
+          docker stop $(docker ps -q) || true
+          docker rm $(docker ps -a -q) || true
           cd /home/***/myfastapiapp
           if [ -f docker-compose.yml ]; then
             docker-compose pull
