@@ -1,7 +1,7 @@
 services:
   app:
     build:
-      context: ./fastapi
+      context: .
     container_name: fastapi
     expose:
       - "8000"
