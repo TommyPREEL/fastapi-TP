@@ -75,7 +75,7 @@ jobs:
         ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST "echo 'SSH connection successful'"
 
         # Copier les fichiers sur l'instance EC2
-        scp -i id_rsa -o StrictHostKeyChecking=no -r . $USER@$HOST:/home/***/myfastapiapp
+        rsync -avz -e "ssh -i id_rsa -o StrictHostKeyChecking=no" . $USER@$HOST:/home/***/myfastapiapp
 
         # Vérifiez que les fichiers ont été copiés
         ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST "ls -l /home/***/myfastapiapp"
