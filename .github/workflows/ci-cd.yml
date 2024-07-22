@@ -79,7 +79,7 @@ jobs:
         echo "$SSH_PRIVATE_KEY" > id_rsa
         chmod 600 id_rsa
         ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
-          cd /home/ec2-user/myfastapiapp
+          cd /home/ec2-user/myfastapiapp/fastapi-TP
           docker-compose pull
           docker-compose up -d
         EOF
