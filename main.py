@@ -71,21 +71,31 @@ async def upload_file(filename: str, file: UploadFile = File(...)):
     except ClientError as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload file: {e}")
 
+# @app.get("/api/file/{filename}")
+# async def download_file(filename: str):
+#     print(f"AWS_ACCESS_KEY_ID: {os.getenv('AWS_ACCESS_KEY_ID')}")
+#     print(f"AWS_SECRET_ACCESS_KEY: {os.getenv('AWS_SECRET_ACCESS_KEY')}")
+#     print(f"AWS_S3_BUCKET_NAME: {os.getenv('AWS_S3_BUCKET_NAME')}")
+#     try:
+#         file_obj = s3.get_object(Bucket=AWS_S3_BUCKET_NAME, Key=filename)
+#         return StreamingResponse(io.BytesIO(file_obj['Body'].read()), media_type='application/octet-stream')
+#     except NoCredentialsError:
+#         raise HTTPException(status_code=500, detail="Credentials not available")
+#     except ClientError as e:
+#         if e.response['Error']['Code'] == 'NoSuchKey':
+#             raise HTTPException(status_code=404, detail="File not found")
+#         else:
+#             raise HTTPException(status_code=500, detail=f"Failed to download file: {e}")
+        
 @app.get("/api/file/{filename}")
 async def download_file(filename: str):
-    print(f"AWS_ACCESS_KEY_ID: {os.getenv('AWS_ACCESS_KEY_ID')}")
-    print(f"AWS_SECRET_ACCESS_KEY: {os.getenv('AWS_SECRET_ACCESS_KEY')}")
-    print(f"AWS_S3_BUCKET_NAME: {os.getenv('AWS_S3_BUCKET_NAME')}")
     try:
-        file_obj = s3.get_object(Bucket=AWS_S3_BUCKET_NAME, Key=filename)
-        return StreamingResponse(io.BytesIO(file_obj['Body'].read()), media_type='application/octet-stream')
+        file_obj = s3.get_object(Bucket=os.getenv('AWS_S3_BUCKET_NAME'), Key=filename)
+        return StreamingResponse(file_obj['Body'], media_type='application/octet-stream')
     except NoCredentialsError:
-        raise HTTPException(status_code=500, detail="Credentials not available")
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'NoSuchKey':
-            raise HTTPException(status_code=404, detail="File not found")
-        else:
-            raise HTTPException(status_code=500, detail=f"Failed to download file: {e}")
+        raise HTTPException(status_code=400, detail="Credentials not available")
+    except s3.exceptions.NoSuchKey:
+        raise HTTPException(status_code=404, detail="File not found")
 
 if __name__ == '__main__':
     import uvicorn
