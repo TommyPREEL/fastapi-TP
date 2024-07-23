@@ -14,7 +14,7 @@
 from fastapi import FastAPI, Request, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 import boto3
-from botocore.exceptions import NoCredentialsError, ClientError
+from botocore.exceptions import NoCredentialsError, ClientError, PartialCredentialsError
 from fastapi.responses import StreamingResponse
 import io
 from dotenv import load_dotenv
@@ -89,15 +89,44 @@ async def upload_file(filename: str, file: UploadFile = File(...)):
 #         else:
 #             raise HTTPException(status_code=500, detail=f"Failed to download file: {e}")
         
-@app.get("/api/file/{filename}")
-async def download_file(filename: str):
+# @app.get("/api/file/{filename}")
+# async def download_file(filename: str):
+#     try:
+#         file_obj = s3.get_object(Bucket=os.getenv('AWS_S3_BUCKET_NAME'), Key=filename)
+#         return StreamingResponse(file_obj['Body'], media_type='application/octet-stream')
+#     except NoCredentialsError:
+#         raise HTTPException(status_code=400, detail="Credentials not available")
+#     except s3.exceptions.NoSuchKey:
+#         raise HTTPException(status_code=404, detail="File not found")
+
+@app.get("/download/{filename}")
+async def download_file(request: Request, filename: str):
     try:
-        file_obj = s3.get_object(Bucket=os.getenv('AWS_S3_BUCKET_NAME'), Key=filename)
-        return StreamingResponse(file_obj['Body'], media_type='application/octet-stream')
-    except NoCredentialsError:
-        raise HTTPException(status_code=400, detail="Credentials not available")
+        file_obj = io.BytesIO()
+        s3.download_fileobj(AWS_S3_BUCKET_NAME, filename, file_obj)
+        file_obj.seek(0)
+
+        # Get additional download info
+        # downloader_ip = request.client.host
+        # download_time = datetime.utcnow().isoformat()
+
+        # Log download information in DynamoDB
+        # downloads_table.put_item(
+        #     Item={
+        #         'filename': filename,
+        #         'download_time': download_time,
+        #         'downloader_ip': downloader_ip
+        #     }
+        # )
+        return StreamingResponse(file_obj, media_type="application/octet-stream", headers={"Content-Disposition": f"attachment; filename={filename}"})
     except s3.exceptions.NoSuchKey:
         raise HTTPException(status_code=404, detail="File not found")
+    except NoCredentialsError:
+        raise HTTPException(status_code=400, detail="AWS credentials not available")
+    except PartialCredentialsError:
+        raise HTTPException(status_code=400, detail="Incomplete AWS credentials")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == '__main__':
     import uvicorn
