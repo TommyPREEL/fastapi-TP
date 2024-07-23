@@ -38,18 +38,29 @@ async def ping():
     return "pong"
 
 
-@app.put("/api/file/{filename}")
-async def upload_file(filename: str, request: Request):
-    try:
-        # Lire le fichier depuis le corps de la requête
-        file_content = await request.body()
+# @app.put("/api/file/{filename}")
+# async def upload_file(filename: str, request: Request):
+#     try:
+#         # Lire le fichier depuis le corps de la requête
+#         file_content = await request.body()
 
-        # Convertir le contenu en un objet BytesIO
-        file_stream = io.BytesIO(file_content)
+#         # Convertir le contenu en un objet BytesIO
+#         file_stream = io.BytesIO(file_content)
         
+#         # Téléverser le fichier sur S3
+#         s3.upload_fileobj(file_stream, BUCKET_NAME, filename)
+        
+#         return JSONResponse(content={"message": "File uploaded successfully"}, status_code=200)
+#     except NoCredentialsError:
+#         raise HTTPException(status_code=500, detail="Credentials not available")
+#     except ClientError as e:
+#         raise HTTPException(status_code=500, detail=f"Failed to upload file: {e}")
+
+@app.put("/api/file/{filename}")
+async def upload_file(filename: str, file: UploadFile = File(...)):
+    try:
         # Téléverser le fichier sur S3
-        s3.upload_fileobj(file_stream, BUCKET_NAME, filename)
-        
+        s3.upload_fileobj(file.file, BUCKET_NAME, filename)
         return JSONResponse(content={"message": "File uploaded successfully"}, status_code=200)
     except NoCredentialsError:
         raise HTTPException(status_code=500, detail="Credentials not available")
