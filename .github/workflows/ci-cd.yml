@@ -12,10 +12,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Archive application files
-        run: |
-          tar --exclude=app.tar.gz -czf app.tar.gz .
-
       - name: SSH to EC2 and deploy
         uses: appleboy/ssh-action@v0.1.6
         with:
@@ -27,15 +23,10 @@ jobs:
             docker stop myfastapi || true
             docker rm myfastapi || true
 
-            # Remove the old application files
-            rm -rf /home/ec2-user/myfastapiapp
-
-            # Create a new directory and extract the new files
-            mkdir -p /home/ec2-user/myfastapiapp
-            tar -xzf app.tar.gz -C /home/ec2-user/myfastapiapp
-
             # Navigate to the application directory
             cd /home/ec2-user/myfastapiapp
+
+            git pull origin main
 
             # Build the Docker image
             docker build -t myfastapi:latest .
