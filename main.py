@@ -31,10 +31,21 @@ async def ping():
     return "pong"
 
 
-@app.post("/api/file/{filename}")
-async def upload_file(file: UploadFile = File(...)):
+@app.post("/api/file")
+async def upload_file(request: Request):
     try:
-        s3.upload_fileobj(file.file, BUCKET_NAME, file.filename)
+        # Lire le fichier depuis le corps de la requête
+        file_content = await request.body()
+        
+        # Nom de fichier est souvent fourni via un en-tête ou paramètre dans une vraie API, ici pour exemple nous utilisons un nom fixe
+        filename = "uploaded-file"  # Vous pouvez personnaliser le nom du fichier comme nécessaire
+
+        # Convertir le contenu en un objet BytesIO
+        file_stream = io.BytesIO(file_content)
+        
+        # Téléverser le fichier sur S3
+        s3.upload_fileobj(file_stream, BUCKET_NAME, filename)
+        
         return JSONResponse(content={"message": "File uploaded successfully"}, status_code=200)
     except NoCredentialsError:
         raise HTTPException(status_code=500, detail="Credentials not available")
