@@ -31,7 +31,11 @@ s3 = boto3.client('s3',
                   aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'))
 
 # Nom du bucket S3
-BUCKET_NAME = os.getenv('BUCKET_NAME')
+AWS_S3_BUCKET_NAME = os.getenv('AWS_S3_BUCKET_NAME')
+
+print(os.getenv('AWS_ACCESS_KEY_ID'))
+print(os.getenv('AWS_SECRET_ACCESS_KEY'))
+print(os.getenv('AWS_S3_BUCKET_NAME'))
 
 @app.get("/ping")
 async def ping():
@@ -71,7 +75,7 @@ async def upload_file(filename: str, file: UploadFile = File(...)):
 async def download_file(filename: str):
     print(f"AWS_ACCESS_KEY_ID: {os.getenv('AWS_ACCESS_KEY_ID')}")
     print(f"AWS_SECRET_ACCESS_KEY: {os.getenv('AWS_SECRET_ACCESS_KEY')}")
-    print(f"BUCKET_NAME: {os.getenv('BUCKET_NAME')}")
+    print(f"AWS_S3_BUCKET_NAME: {os.getenv('AWS_S3_BUCKET_NAME')}")
     try:
         file_obj = s3.get_object(Bucket=BUCKET_NAME, Key=filename)
         return StreamingResponse(io.BytesIO(file_obj['Body'].read()), media_type='application/octet-stream')
