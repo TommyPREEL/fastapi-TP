@@ -10,7 +10,7 @@
 # async def ping():
 #     return "ping"
 
-
+import logging
 from fastapi import FastAPI, Request, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 import boto3
@@ -20,10 +20,15 @@ import io
 from dotenv import load_dotenv
 import os
 
+
 # Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
 
 app = FastAPI()
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Configuration de Boto3
 s3 = boto3.client('s3',
@@ -101,6 +106,10 @@ async def upload_file(filename: str, file: UploadFile = File(...)):
 
 @app.get("/download/{filename}")
 async def download_file(request: Request, filename: str):
+    # Log the values and types
+    logger.info(f"Filename: {filename} (type: {type(filename)})")
+    logger.info(f"AWS_S3_BUCKET_NAME: {AWS_S3_BUCKET_NAME} (type: {type(AWS_S3_BUCKET_NAME)})")
+
     try:
         file_obj = io.BytesIO()
         s3.download_fileobj(AWS_S3_BUCKET_NAME, filename, file_obj)
