@@ -17,14 +17,21 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 from fastapi.responses import StreamingResponse
 import io
+from dotenv import load_dotenv
+import os
+
+# Charger les variables d'environnement depuis le fichier .env
+load_dotenv()
 
 app = FastAPI()
 
 # Configuration de Boto3
-s3 = boto3.client('s3')
+s3 = boto3.client('s3',
+                  aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+                  aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'))
 
 # Nom du bucket S3
-BUCKET_NAME = 'myfastapiapp'
+BUCKET_NAME = os.getenv('BUCKET_NAME')
 
 @app.get("/ping")
 async def ping():
