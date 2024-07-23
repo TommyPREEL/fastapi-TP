@@ -1,45 +1,7 @@
-name: CI/CD Pipeline
-
-on:
-  push:
-    branches:
-      - main  # ou la branche que vous utilisez pour le déploiement
-
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'  # utilisez la version Python nécessaire pour votre projet
-
-    - name: Create and activate virtual environment
-      run: |
-        python -m venv venv
-        source venv/bin/activate
-
-    - name: Install dependencies
-      run: |
-        source venv/bin/activate
-        pip install --upgrade pip
-        pip install -r requirements.txt
-
-    # Uncomment the following lines if you have tests
-    # - name: Run tests
-    #   run: |
-    #     source venv/bin/activate
-    #     pytest
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-test  # Attendez que le job de build-and-test soit terminé
-
-    steps:
+deploy:
+  runs-on: ubuntu-latest
+  needs: build-and-test
+  steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
@@ -74,29 +36,13 @@ jobs:
         echo "$SSH_PRIVATE_KEY" > id_rsa
         chmod 600 id_rsa
 
-        echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" > .env
-        echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
-        echo "AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }}" >> .env
-
-        # Ajoutez une étape pour vérifier l'authentification SSH
-        ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST "echo 'SSH connection successful'"
-
         # Copier les fichiers sur l'instance EC2
-        rsync -avz -e "ssh -i id_rsa -o StrictHostKeyChecking=no" . $USER@$HOST:/home/***/myfastapiapp
-
-        # Vérifiez que les fichiers ont été copiés
-        ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST "ls -l /home/***/myfastapiapp"
+        rsync -avz -e "ssh -i id_rsa -o StrictHostKeyChecking=no" . $USER@$HOST:/home/$USER/myfastapiapp
 
         # Forcer l'arrêt et la suppression des conteneurs existants
         ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
-          docker stop $(docker ps -q) || true
-          docker rm $(docker ps -a -q) || true
-          cd /home/***/myfastapiapp
-          if [ -f docker-compose.yml ]; then
-            docker-compose pull
-            docker-compose up -d
-          else
-            echo "docker-compose.yml not found in /home/***/myfastapiapp"
-            exit 1
-          fi
+          cd /home/$USER/myfastapiapp
+          docker-compose down
+          docker-compose pull
+          docker-compose up -d
         EOF
