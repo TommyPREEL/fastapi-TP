@@ -31,14 +31,11 @@ async def ping():
     return "pong"
 
 
-@app.post("/api/file")
-async def upload_file(request: Request):
+@app.put("/api/file/{filename}")
+async def upload_file(filename: str, request: Request):
     try:
         # Lire le fichier depuis le corps de la requête
         file_content = await request.body()
-        
-        # Nom de fichier est souvent fourni via un en-tête ou paramètre dans une vraie API, ici pour exemple nous utilisons un nom fixe
-        filename = "uploaded-file"  # Vous pouvez personnaliser le nom du fichier comme nécessaire
 
         # Convertir le contenu en un objet BytesIO
         file_stream = io.BytesIO(file_content)
