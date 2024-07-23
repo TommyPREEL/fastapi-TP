@@ -11,7 +11,7 @@
 #     return "ping"
 
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, Request, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
