@@ -43,6 +43,10 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > id_rsa
           chmod 600 id_rsa
 
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" > .env
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
+          echo "AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }}" >> .env
+
           # Copier les fichiers sur l'instance EC2
           rsync -avz -e "ssh -i id_rsa -o StrictHostKeyChecking=no" . $USER@$HOST:/home/$USER/myfastapiapp
 
