@@ -14,9 +14,7 @@ jobs:
 
       - name: Archive application files
         run: |
-          mkdir app
-          cp -r * app/
-          tar -czf app.tar.gz app
+          tar --exclude=app.tar.gz -czf app.tar.gz .
 
       - name: SSH to EC2 and deploy
         uses: appleboy/ssh-action@v0.1.6
