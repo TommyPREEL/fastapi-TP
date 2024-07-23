@@ -56,7 +56,7 @@ async def ping():
 #     except ClientError as e:
 #         raise HTTPException(status_code=500, detail=f"Failed to upload file: {e}")
 
-@app.put("/api/file/{filename}")
+@app.post("/api/file/{filename}")
 async def upload_file(filename: str, file: UploadFile = File(...)):
     try:
         # Téléverser le fichier sur S3
