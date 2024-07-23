@@ -4,52 +4,52 @@ on:
   push:
     branches:
       - main  # ou la branche que vous utilisez pour le déploiement
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-deploy:
-  runs-on: ubuntu-latest
-  needs: build-and-test
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    - name: Log in to Docker Hub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
-    - name: Cache Docker layers
-      uses: actions/cache@v3
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
+      - name: Build and push Docker image
+        run: |
+          docker-compose build
+          docker-compose push
 
-    - name: Build and push Docker image
-      run: |
-        docker-compose build
-        docker-compose push
+      - name: Deploy to EC2
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.HOST }}
+          USER: ${{ secrets.USER }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > id_rsa
+          chmod 600 id_rsa
 
-    - name: Deploy to EC2
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        HOST: ${{ secrets.HOST }}
-        USER: ${{ secrets.USER }}
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
-      run: |
-        echo "$SSH_PRIVATE_KEY" > id_rsa
-        chmod 600 id_rsa
+          # Copier les fichiers sur l'instance EC2
+          rsync -avz -e "ssh -i id_rsa -o StrictHostKeyChecking=no" . $USER@$HOST:/home/$USER/myfastapiapp
 
-        # Copier les fichiers sur l'instance EC2
-        rsync -avz -e "ssh -i id_rsa -o StrictHostKeyChecking=no" . $USER@$HOST:/home/$USER/myfastapiapp
-
-        # Forcer l'arrêt et la suppression des conteneurs existants
-        ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
-          cd /home/$USER/myfastapiapp
-          docker-compose down
-          docker-compose pull
-          docker-compose up -d
-        EOF
+          # Forcer l'arrêt et la suppression des conteneurs existants
+          ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
+            cd /home/$USER/myfastapiapp
+            docker-compose down
+            docker-compose pull
+            docker-compose up -d
+          EOF
