@@ -64,7 +64,7 @@ async def ping():
 async def upload_file(filename: str, file: UploadFile = File(...)):
     try:
         # Téléverser le fichier sur S3
-        s3.upload_fileobj(file.file, BUCKET_NAME, filename)
+        s3.upload_fileobj(file.file, AWS_S3_BUCKET_NAME, filename)
         return JSONResponse(content={"message": "File uploaded successfully"}, status_code=200)
     except NoCredentialsError:
         raise HTTPException(status_code=500, detail="Credentials not available")
@@ -77,7 +77,7 @@ async def download_file(filename: str):
     print(f"AWS_SECRET_ACCESS_KEY: {os.getenv('AWS_SECRET_ACCESS_KEY')}")
     print(f"AWS_S3_BUCKET_NAME: {os.getenv('AWS_S3_BUCKET_NAME')}")
     try:
-        file_obj = s3.get_object(Bucket=BUCKET_NAME, Key=filename)
+        file_obj = s3.get_object(Bucket=AWS_S3_BUCKET_NAME, Key=filename)
         return StreamingResponse(io.BytesIO(file_obj['Body'].read()), media_type='application/octet-stream')
     except NoCredentialsError:
         raise HTTPException(status_code=500, detail="Credentials not available")
