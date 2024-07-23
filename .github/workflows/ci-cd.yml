@@ -13,7 +13,10 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Archive application files
-        run: tar -czf app.tar.gz .
+        run: |
+          mkdir app
+          cp -r * app/
+          tar -czf app.tar.gz app
 
       - name: SSH to EC2 and deploy
         uses: appleboy/ssh-action@v0.1.6
