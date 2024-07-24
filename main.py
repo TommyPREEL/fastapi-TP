@@ -129,13 +129,14 @@ async def download_file(request: Request, filename: str):
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@app.delete("/api/file/{filename}")
-async def delete_file(request: Request, filename: str):
+@app.post("/api/file/{file_id}")
+async def delete_file(request: Request, file_id: str):
     try:
-        s3.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=filename)
+        s3.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=file_id)
         dynamodb.put_item(
             TableName="FileUpload",
-            Key={'deletion_date': {'S': datetime.datetime.now().isoformat()}}
+            Key={'id': {'S': file_id}},
+            Item={'deletion_date': {'S': datetime.datetime.now().isoformat()}}
         )
         return JSONResponse(content={"message": "File uploaded successfully"}, status_code=200)
     except NoCredentialsError:
