@@ -12,48 +12,48 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: SSH to EC2 and deploy
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            # Configuration de la clé privée SSH
-            echo "$SSH_PRIVATE_KEY" > id_rsa
-            chmod 600 id_rsa
+      # - name: SSH to EC2 and deploy
+      #   uses: appleboy/ssh-action@v0.1.6
+      #   with:
+      #     host: ${{ secrets.HOST }}
+      #     username: ${{ secrets.USER }}
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     script: |
+      #       # Configuration de la clé privée SSH
+      #       echo "$SSH_PRIVATE_KEY" > id_rsa
+      #       chmod 600 id_rsa
 
-            # Définir les variables d'environnement
-            USER="${{ secrets.USER }}"
-            HOST="${{ secrets.HOST }}"
+      #       # Définir les variables d'environnement
+      #       USER="${{ secrets.USER }}"
+      #       HOST="${{ secrets.HOST }}"
 
-            # Copie du fichier .env sur le serveur distant
-            scp -i id_rsa -o StrictHostKeyChecking=no .env $USER@$HOST:/home/$USER/myfastapiapp/.env
+      #       # Copie du fichier .env sur le serveur distant
+      #       scp -i id_rsa -o StrictHostKeyChecking=no .env $USER@$HOST:/home/$USER/myfastapiapp/.env
 
-            # Exécution des commandes SSH sur le serveur distant
-            ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << 'EOF'
-            set -e  # Arrêter le script si une commande échoue
+      #       # Exécution des commandes SSH sur le serveur distant
+      #       ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << 'EOF'
+      #       set -e  # Arrêter le script si une commande échoue
 
-            # Arrêter et supprimer le conteneur existant si nécessaire
-            docker stop myfastapi || true
-            docker rm myfastapi || true
+      #       # Arrêter et supprimer le conteneur existant si nécessaire
+      #       docker stop myfastapi || true
+      #       docker rm myfastapi || true
 
-            # Aller dans le répertoire de l'application
-            cd /home/$USER/myfastapiapp
+      #       # Aller dans le répertoire de l'application
+      #       cd /home/$USER/myfastapiapp
 
-            # Mettre à jour le dépôt Git
-            git pull origin main
+      #       # Mettre à jour le dépôt Git
+      #       git pull origin main
 
-            # Construire l'image Docker
-            docker build -t myfastapi:latest .
+      #       # Construire l'image Docker
+      #       docker build -t myfastapi:latest .
 
-            # Exécuter le conteneur Docker
-            docker run -d --name myfastapi -p 8000:8000 -e AWS_REGION=${{ secrets.AWS_REGION }} \
-             -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-             -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-             -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
-             myfastapi:latest
-            EOF
+      #       # Exécuter le conteneur Docker
+      #       docker run -d --name myfastapi -p 8000:8000 -e AWS_REGION=${{ secrets.AWS_REGION }} \
+      #        -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+      #        -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+      #        -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
+      #        myfastapi:latest
+      #       EOF
 
       # - name: Set up Docker Buildx
       #   uses: docker/setup-buildx-action@v2
@@ -81,36 +81,36 @@ jobs:
       #     echo "AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }}" >> .env
       #     echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env
 
-      # - name: Deploy to EC2
-      #   env:
-      #     SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-      #     HOST: ${{ secrets.HOST }}
-      #     USER: ${{ secrets.USER }}
-      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
-      #     AWS_REGION: ${{ secrets.AWS_REGION }}
-      #   run: |
-      #     echo "$SSH_PRIVATE_KEY" > id_rsa
-      #     chmod 600 id_rsa
+      - name: Deploy to EC2
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.HOST }}
+          USER: ${{ secrets.USER }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > id_rsa
+          chmod 600 id_rsa
 
-      #     scp -i id_rsa -o StrictHostKeyChecking=no .env $USER@$HOST:/home/$USER/myfastapiapp/.env
+          scp -i id_rsa -o StrictHostKeyChecking=no .env $USER@$HOST:/home/$USER/myfastapiapp/.env
 
-      #     # Forcer l'arrêt et la suppression des conteneurs existants
-      #     ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
+          # Forcer l'arrêt et la suppression des conteneurs existants
+          ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
 
-      #       cd /home/$USER/myfastapiapp
+            cd /home/$USER/myfastapiapp
 
-      #       git pull origin main
+            git pull origin main
 
-      #       docker-compose down
+            docker-compose down
 
-      #       # Export environment variables for docker-compose
-      #       export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      #       export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      #       export AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
-      #       export AWS_REGION=${AWS_REGION}
+            # Export environment variables for docker-compose
+            export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+            export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+            export AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
+            export AWS_REGION=${AWS_REGION}
 
-      #       docker-compose pull
-      #       docker-compose up -d
-      #     EOF
+            docker-compose pull
+            docker-compose up -d
+          EOF
