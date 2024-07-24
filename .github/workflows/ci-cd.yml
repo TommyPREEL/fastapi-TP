@@ -24,7 +24,7 @@ jobs:
         with:
           host: 13.39.150.26
           username: ec2-user
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           script: |
             # Stop and remove the existing container if it exists
             docker stop myfastapi || true
