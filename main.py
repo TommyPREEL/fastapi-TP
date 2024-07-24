@@ -129,7 +129,7 @@ async def download_file(request: Request, filename: str):
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@app.post("/api/file/{filename}")
+@app.delete("/api/file/{filename}")
 async def delete_file(request: Request, filename: str):
     try:
         s3.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=filename)
