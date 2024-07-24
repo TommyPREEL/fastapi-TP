@@ -121,7 +121,7 @@ async def delete_file(request: Request, file_id: str):
             Key={'id': {'S': file_id}},
             UpdateExpression="SET deletion_date = :deletion_date",
             ExpressionAttributeValues={
-                ':deletion_date': {'S': datetime.datetime.now()}
+                ':deletion_date': {'S': str(datetime.datetime.now().isoformat())}
             }
         )
 
