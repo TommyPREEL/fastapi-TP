@@ -12,35 +12,61 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup SSH key for Git
+      - name: Add SSH key
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-      - name: SSH to EC2 and deploy
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: 13.39.150.26
-          username: ec2-user
-          key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          script: |
-            # Stop and remove the existing container if it exists
+        echo "${{ secrets.RSA_EC2 }}" > key.pem
+        chmod 600 key.pem
+      
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.HOST }} << EOF
+            cd /home/ec2-user/myfastapiapp
+            git pull
             docker stop myfastapi || true
             docker rm myfastapi || true
-
-            # Navigate to the application directory
-            cd /home/ec2-user/myfastapiapp
-
-            git pull origin main
-
-            # Build the Docker image
             docker build -t myfastapi:latest .
-
-            # Run the Docker container
             docker run -d --name myfastapi -p 8000:8000 -e AWS_REGION=${{ secrets.AWS_REGION }} \
              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
              -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
               myfastapi:latest
+          EOF
+        env:
+          HOST: ${{ secrets.HOST }}
+          RSA_EC2: ${{ secrets.RSA_EC2 }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
+
+      # - name: Setup SSH key for Git
+      #   run: |
+      #     mkdir -p ~/.ssh
+      #     echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+      #     chmod 600 ~/.ssh/id_rsa
+      #     ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      # - name: SSH to EC2 and deploy
+      #   uses: appleboy/ssh-action@v0.1.6
+      #   with:
+      #     host: 13.39.150.26
+      #     username: ec2-user
+      #     key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     script: |
+      #       # Stop and remove the existing container if it exists
+      #       docker stop myfastapi || true
+      #       docker rm myfastapi || true
+
+      #       # Navigate to the application directory
+      #       cd /home/ec2-user/myfastapiapp
+
+      #       git pull origin main
+
+      #       # Build the Docker image
+      #       docker build -t myfastapi:latest .
+
+      #       # Run the Docker container
+      #       docker run -d --name myfastapi -p 8000:8000 -e AWS_REGION=${{ secrets.AWS_REGION }} \
+      #        -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+      #        -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+      #        -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
+      #         myfastapi:latest
