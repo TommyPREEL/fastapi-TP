@@ -99,6 +99,9 @@ jobs:
           # Forcer l'arrêt et la suppression des conteneurs existants
           ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
 
+            docker stop myfastapi || true
+            docker rm myfastapi || true
+
             cd /home/$USER/myfastapiapp
 
             git pull origin main
