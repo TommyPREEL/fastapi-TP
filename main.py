@@ -59,25 +59,6 @@ print(os.getenv('AWS_S3_BUCKET_NAME'))
 async def ping():
     return "pong"
 
-
-# @app.put("/api/file/{filename}")
-# async def upload_file(filename: str, request: Request):
-#     try:
-#         # Lire le fichier depuis le corps de la requête
-#         file_content = await request.body()
-
-#         # Convertir le contenu en un objet BytesIO
-#         file_stream = io.BytesIO(file_content)
-        
-#         # Téléverser le fichier sur S3
-#         s3.upload_fileobj(file_stream, BUCKET_NAME, filename)
-        
-#         return JSONResponse(content={"message": "File uploaded successfully"}, status_code=200)
-#     except NoCredentialsError:
-#         raise HTTPException(status_code=500, detail="Credentials not available")
-#     except ClientError as e:
-#         raise HTTPException(status_code=500, detail=f"Failed to upload file: {e}")
-
 @app.post("/api/file")
 async def upload_file(file: UploadFile = File(...)):
     try:
@@ -107,7 +88,6 @@ async def download_file(request: Request, filename: str):
 
         downloader_ip = request.client.host
 
-        # Log download information in DynamoDB
         dynamodb.put_item(
             TableName="FileDownload",
             Item={
@@ -129,7 +109,7 @@ async def download_file(request: Request, filename: str):
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@app.post("/api/file/{file_id}")
+@app.delete("/api/file/{file_id}")
 async def delete_file(request: Request, file_id: str):
     try:
         s3.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=file_id)
