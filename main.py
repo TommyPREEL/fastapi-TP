@@ -112,18 +112,19 @@ async def download_file(request: Request, filename: str):
 @app.delete("/api/file/{file_id}")
 async def delete_file(request: Request, file_id: str):
     try:
-        # Delete the file from S3
-        s3.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=file_id)
-
         # Record the deletion date in DynamoDB
-        dynamodb.update_item(
+        file_deleted = dynamodb.update_item(
             TableName="FileUpload",
             Key={'id': {'S': file_id}},
             UpdateExpression="SET deletion_date = :deletion_date",
             ExpressionAttributeValues={
                 ':deletion_date': {'S': str(datetime.datetime.now().isoformat())}
-            }
+            },
+            ReturnValues="ALL_NEW"
         )
+
+        # Delete the file from S3
+        s3.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=file_deleted.filename)
 
         return JSONResponse(content={"message": "File deleted successfully"}, status_code=200)
     except s3.exceptions.NoSuchKey:
