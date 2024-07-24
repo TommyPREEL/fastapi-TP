@@ -80,7 +80,7 @@ async def ping():
 @app.post("/api/file")
 async def upload_file(file: UploadFile = File(...)):
     try:
-        s3.upload_fileobj(file.filename, AWS_S3_BUCKET_NAME, filename)
+        s3.upload_fileobj(file.file, AWS_S3_BUCKET_NAME, file.filename)
         dynamodb.put_item(
             TableName="FileUpload",
             Item={
