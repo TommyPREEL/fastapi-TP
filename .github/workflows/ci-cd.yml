@@ -3,7 +3,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main # Branche utilisée pour le déploiement
+      - main # Branche que vous utilisez pour le déploiement
 
 jobs:
   deploy:
@@ -12,105 +12,35 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # - name: SSH to EC2 and deploy
-      #   uses: appleboy/ssh-action@v0.1.6
-      #   with:
-      #     host: ${{ secrets.HOST }}
-      #     username: ${{ secrets.USER }}
-      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
-      #     script: |
-      #       # Configuration de la clé privée SSH
-      #       echo "$SSH_PRIVATE_KEY" > id_rsa
-      #       chmod 600 id_rsa
-
-      #       # Définir les variables d'environnement
-      #       USER="${{ secrets.USER }}"
-      #       HOST="${{ secrets.HOST }}"
-
-      #       # Copie du fichier .env sur le serveur distant
-      #       scp -i id_rsa -o StrictHostKeyChecking=no .env $USER@$HOST:/home/$USER/myfastapiapp/.env
-
-      #       # Exécution des commandes SSH sur le serveur distant
-      #       ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << 'EOF'
-      #       set -e  # Arrêter le script si une commande échoue
-
-      #       # Arrêter et supprimer le conteneur existant si nécessaire
-      #       docker stop myfastapi || true
-      #       docker rm myfastapi || true
-
-      #       # Aller dans le répertoire de l'application
-      #       cd /home/$USER/myfastapiapp
-
-      #       # Mettre à jour le dépôt Git
-      #       git pull origin main
-
-      #       # Construire l'image Docker
-      #       docker build -t myfastapi:latest .
-
-      #       # Exécuter le conteneur Docker
-      #       docker run -d --name myfastapi -p 8000:8000 -e AWS_REGION=${{ secrets.AWS_REGION }} \
-      #        -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-      #        -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-      #        -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
-      #        myfastapi:latest
-      #       EOF
-
-      # - name: Set up Docker Buildx
-      #   uses: docker/setup-buildx-action@v2
-
-      # - name: Log in to Docker Hub
-      #   run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-      # - name: Cache Docker layers
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: /tmp/.buildx-cache
-      #     key: ${{ runner.os }}-buildx-${{ github.sha }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-buildx-
-
-      # - name: Build and push Docker image
-      #   run: |
-      #     docker-compose build
-      #     docker-compose push
-
-      - name: Prepare env variables
+      - name: Setup SSH key for Git
         run: |
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" > .env
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> .env
-          echo "AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }}" >> .env
-          echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> .env
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-      - name: Deploy to EC2
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          HOST: ${{ secrets.HOST }}
-          USER: ${{ secrets.USER }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          echo "$SSH_PRIVATE_KEY" > id_rsa
-          chmod 600 id_rsa
-
-          scp -i id_rsa -o StrictHostKeyChecking=no .env $USER@$HOST:/home/$USER/myfastapiapp/.env
-
-          # Forcer l'arrêt et la suppression des conteneurs existants
-          ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
-
+      - name: SSH to EC2 and deploy
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: 13.39.150.26
+          username: ec2-user
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Stop and remove the existing container if it exists
             docker stop myfastapi || true
             docker rm myfastapi || true
 
-            cd /home/$USER/myfastapiapp
+            # Navigate to the application directory
+            cd /home/ec2-user/myfastapiapp
 
             git pull origin main
 
+            # Build the Docker image
             docker build -t myfastapi:latest .
 
+            # Run the Docker container
             docker run -d --name myfastapi -p 8000:8000 -e AWS_REGION=${{ secrets.AWS_REGION }} \
              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
              -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
-             myfastapi:latest
-          EOF
+              myfastapi:latest
