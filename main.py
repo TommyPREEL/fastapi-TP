@@ -11,6 +11,7 @@
 #     return "ping"
 
 import logging
+import uuid
 from fastapi import FastAPI, Request, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 import boto3
@@ -84,6 +85,7 @@ async def upload_file(file: UploadFile = File(...)):
         dynamodb.put_item(
             TableName="FileUpload",
             Item={
+                'id': {'S': uuid.uuid4()},
                 'filename': {'S': file.filename},
                 'size': {'N': str(file.size)},
                 'upload_date': {'S': datetime.datetime.now().isoformat()},
@@ -108,6 +110,7 @@ async def download_file(request: Request, filename: str):
         dynamodb.put_item(
             TableName="FileDownload",
             Item={
+                'id': {'S': uuid.uuid4()},
                 'filename': {'S': filename},
                 'download_date': {'S': datetime.datetime.now().isoformat()},
                 'downloader_ip': {'S': downloader_ip}
