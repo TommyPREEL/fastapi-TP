@@ -153,6 +153,40 @@ async def delete_file(request: Request, file_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
+@app.get("/api/files")
+async def get_files(request: Request):
+    try:
+        # Scan DynamoDB table to retrieve all files
+        response = dynamodb.scan(
+            TableName="FileUpload",
+            FilterExpression="attribute_not_exists(deletion_date) OR deletion_date = :empty",
+            ExpressionAttributeValues={
+                ':empty': {'S': ''}
+            }
+        )
+
+        
+        # Extract file details from the response
+        files = []
+        for item in response.get('Items', []):
+            file_info = {
+                'id': item.get('id', {}).get('S'),
+                'filename': item.get('filename', {}).get('S'),
+                'size': item.get('size', {}).get('N'),
+                'upload_date': item.get('upload_date', {}).get('S')
+            }
+            files.append(file_info)
+
+        return JSONResponse(content={"files": files}, status_code=200)
+    except NoCredentialsError:
+        raise HTTPException(status_code=500, detail="AWS credentials not available")
+    except ClientError as e:
+        error_message = e.response['Error'].get('Message', 'An error occurred')
+        raise HTTPException(status_code=500, detail=f"DynamoDB error: {error_message}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
