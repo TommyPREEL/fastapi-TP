@@ -85,10 +85,11 @@ async def upload_file(file: UploadFile = File(...)):
         dynamodb.put_item(
             TableName="FileUpload",
             Item={
-                'id': {'S': uuid.uuid4()},
+                'id': {'S': str(uuid.uuid4())},
                 'filename': {'S': file.filename},
                 'size': {'N': str(file.size)},
                 'upload_date': {'S': datetime.datetime.now().isoformat()},
+                'deletion_date': {'S': ""},
             }
         )
         return JSONResponse(content={"message": "File uploaded successfully"}, status_code=200)
@@ -110,7 +111,7 @@ async def download_file(request: Request, filename: str):
         dynamodb.put_item(
             TableName="FileDownload",
             Item={
-                'id': {'S': uuid.uuid4()},
+                'id': {'S': str(uuid.uuid4())},
                 'filename': {'S': filename},
                 'download_date': {'S': datetime.datetime.now().isoformat()},
                 'downloader_ip': {'S': downloader_ip}
@@ -126,6 +127,21 @@ async def download_file(request: Request, filename: str):
         raise HTTPException(status_code=400, detail="Incomplete AWS credentials")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+@app.post("/api/file/{filename}")
+async def delete_file(request: Request, filename: str):
+    try:
+        s3.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=filename)
+        dynamodb.put_item(
+            TableName="FileUpload",
+            Key={'deletion_date': {'S': datetime.datetime.now().isoformat()}}
+        )
+        return JSONResponse(content={"message": "File uploaded successfully"}, status_code=200)
+    except NoCredentialsError:
+        raise HTTPException(status_code=500, detail="Credentials not available")
+    except ClientError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {e}")
 
 if __name__ == '__main__':
     import uvicorn
