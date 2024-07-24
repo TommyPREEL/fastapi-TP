@@ -19,8 +19,7 @@ from fastapi.responses import StreamingResponse
 import io
 from dotenv import load_dotenv
 import os
-
-
+import datetime
 # Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
 
@@ -30,6 +29,9 @@ app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_REGION = os.getenv('AWS_REGION')
 # Configuration de Boto3
 s3 = boto3.client('s3',
                   aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
@@ -40,6 +42,13 @@ s3 = boto3.client('s3',
 # Nom du bucket S3
 AWS_S3_BUCKET_NAME = os.getenv('AWS_S3_BUCKET_NAME')
 
+# dynamodb = boto3.resource('dynamodb', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
+
+dynamodb = boto3.client('dynamodb',
+                  aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+                  aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+                  region_name=os.getenv('AWS_REGION'),
+                  )
 print(os.getenv('AWS_ACCESS_KEY_ID'))
 print(os.getenv('AWS_SECRET_ACCESS_KEY'))
 print(os.getenv('AWS_S3_BUCKET_NAME'))
@@ -67,66 +76,42 @@ async def ping():
 #     except ClientError as e:
 #         raise HTTPException(status_code=500, detail=f"Failed to upload file: {e}")
 
-@app.post("/api/file/{filename}")
-async def upload_file(filename: str, file: UploadFile = File(...)):
+@app.post("/api/file")
+async def upload_file(file: UploadFile = File(...)):
     try:
-        # Téléverser le fichier sur S3
-        s3.upload_fileobj(file.file, AWS_S3_BUCKET_NAME, filename)
+        s3.upload_fileobj(file.filename, AWS_S3_BUCKET_NAME, filename)
+        dynamodb.put_item(
+            TableName="FileUpload",
+            Item={
+                'filename': file.filename,
+                'size': file.size,
+                'upload_date': datetime.datetime.now(),
+            }
+        )
         return JSONResponse(content={"message": "File uploaded successfully"}, status_code=200)
     except NoCredentialsError:
         raise HTTPException(status_code=500, detail="Credentials not available")
     except ClientError as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload file: {e}")
 
-# @app.get("/api/file/{filename}")
-# async def download_file(filename: str):
-#     print(f"AWS_ACCESS_KEY_ID: {os.getenv('AWS_ACCESS_KEY_ID')}")
-#     print(f"AWS_SECRET_ACCESS_KEY: {os.getenv('AWS_SECRET_ACCESS_KEY')}")
-#     print(f"AWS_S3_BUCKET_NAME: {os.getenv('AWS_S3_BUCKET_NAME')}")
-#     try:
-#         file_obj = s3.get_object(Bucket=AWS_S3_BUCKET_NAME, Key=filename)
-#         return StreamingResponse(io.BytesIO(file_obj['Body'].read()), media_type='application/octet-stream')
-#     except NoCredentialsError:
-#         raise HTTPException(status_code=500, detail="Credentials not available")
-#     except ClientError as e:
-#         if e.response['Error']['Code'] == 'NoSuchKey':
-#             raise HTTPException(status_code=404, detail="File not found")
-#         else:
-#             raise HTTPException(status_code=500, detail=f"Failed to download file: {e}")
-        
-# @app.get("/api/file/{filename}")
-# async def download_file(filename: str):
-#     try:
-#         file_obj = s3.get_object(Bucket=os.getenv('AWS_S3_BUCKET_NAME'), Key=filename)
-#         return StreamingResponse(file_obj['Body'], media_type='application/octet-stream')
-#     except NoCredentialsError:
-#         raise HTTPException(status_code=400, detail="Credentials not available")
-#     except s3.exceptions.NoSuchKey:
-#         raise HTTPException(status_code=404, detail="File not found")
-
-@app.get("/download/{filename}")
+@app.get("/api/file/{filename}")
 async def download_file(request: Request, filename: str):
-    # Log the values and types
-    logger.info(f"Filename: {filename} (type: {type(filename)})")
-    logger.info(f"AWS_S3_BUCKET_NAME: {AWS_S3_BUCKET_NAME} (type: {type(AWS_S3_BUCKET_NAME)})")
-
     try:
         file_obj = io.BytesIO()
         s3.download_fileobj(AWS_S3_BUCKET_NAME, filename, file_obj)
         file_obj.seek(0)
 
-        # Get additional download info
-        # downloader_ip = request.client.host
-        # download_time = datetime.utcnow().isoformat()
+        downloader_ip = request.client.host
 
         # Log download information in DynamoDB
-        # downloads_table.put_item(
-        #     Item={
-        #         'filename': filename,
-        #         'download_time': download_time,
-        #         'downloader_ip': downloader_ip
-        #     }
-        # )
+        dynamodb.put_item(
+            TableName="FileDownload",
+            Item={
+                'filename': filename,
+                'download_date': datetime.datetime.now(),
+                'downloader_ip': downloader_ip
+            }
+        )
         return StreamingResponse(file_obj, media_type="application/octet-stream", headers={"Content-Disposition": f"attachment; filename={filename}"})
     except s3.exceptions.NoSuchKey:
         raise HTTPException(status_code=404, detail="File not found")
