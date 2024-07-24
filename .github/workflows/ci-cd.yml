@@ -20,7 +20,7 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.HOST }} << EOF
-            cd /home/ec2-user/fastapi-TP
+            cd /home/ec2-user/myfastapiapp
             git pull
             docker stop myfastapi || true
             docker rm myfastapi || true
