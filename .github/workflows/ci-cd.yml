@@ -19,6 +19,14 @@ jobs:
           username: ec2-user
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            echo "$SSH_PRIVATE_KEY" > id_rsa
+            chmod 600 id_rsa
+
+            scp -i id_rsa -o StrictHostKeyChecking=no .env $USER@$HOST:/home/$USER/myfastapiapp/.env
+
+            # Forcer l'arrêt et la suppression des conteneurs existants
+            ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
+
             # Stop and remove the existing container if it exists
             docker stop myfastapi || true
             docker rm myfastapi || true
