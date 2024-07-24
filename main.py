@@ -84,9 +84,9 @@ async def upload_file(file: UploadFile = File(...)):
         dynamodb.put_item(
             TableName="FileUpload",
             Item={
-                'filename': file.filename,
-                'size': file.size,
-                'upload_date': datetime.datetime.now(),
+                'filename': {'S': file.filename},
+                'size': {'N': str(file.size)},
+                'upload_date': {'S': datetime.datetime.now().isoformat()},
             }
         )
         return JSONResponse(content={"message": "File uploaded successfully"}, status_code=200)
@@ -108,9 +108,9 @@ async def download_file(request: Request, filename: str):
         dynamodb.put_item(
             TableName="FileDownload",
             Item={
-                'filename': filename,
-                'download_date': datetime.datetime.now(),
-                'downloader_ip': downloader_ip
+                'filename': {'S': filename},
+                'download_date': {'S': datetime.datetime.now().isoformat()},
+                'downloader_ip': {'S': downloader_ip}
             }
         )
 
