@@ -112,6 +112,7 @@ async def download_file(request: Request, filename: str):
                 'downloader_ip': downloader_ip
             }
         )
+
         return StreamingResponse(file_obj, media_type="application/octet-stream", headers={"Content-Disposition": f"attachment; filename={filename}"})
     except s3.exceptions.NoSuchKey:
         raise HTTPException(status_code=404, detail="File not found")
