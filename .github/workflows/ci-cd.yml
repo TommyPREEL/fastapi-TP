@@ -14,9 +14,9 @@ jobs:
 
       - name: Add SSH key
         run: |
-        echo "${{ secrets.RSA_EC2 }}" > key.pem
-        chmod 600 key.pem
-      
+          echo "${{ secrets.RSA_EC2 }}" > key.pem
+          chmod 600 key.pem
+
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.HOST }} << EOF
