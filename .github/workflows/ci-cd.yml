@@ -27,7 +27,7 @@ jobs:
             cd /home/ec2-user/myfastapiapp
 
             # Pull
-            git pull main
+            git pull
 
             # Build the Docker image
             docker build -t myfastapi:latest .
