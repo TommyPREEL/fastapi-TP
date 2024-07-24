@@ -112,23 +112,39 @@ async def download_file(request: Request, filename: str):
 @app.delete("/api/file/{file_id}")
 async def delete_file(request: Request, file_id: str):
     try:
+        # Retrieve the item from DynamoDB to get the filename
+        response = dynamodb.get_item(
+            TableName="FileUpload",
+            Key={'id': {'S': file_id}}
+        )
+
+        # Check if the file exists in DynamoDB
+        if 'Item' not in response:
+            raise HTTPException(status_code=404, detail="File not found in DynamoDB")
+
+        # Extract the filename from the DynamoDB response
+        item = response['Item']
+        filename = item.get('filename', {}).get('S')
+        
+        if not filename:
+            raise HTTPException(status_code=404, detail="Filename not found in DynamoDB")
+
+        # Delete the file from S3
+        s3.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=filename)
+
         # Record the deletion date in DynamoDB
-        file_deleted = dynamodb.update_item(
+        dynamodb.update_item(
             TableName="FileUpload",
             Key={'id': {'S': file_id}},
             UpdateExpression="SET deletion_date = :deletion_date",
             ExpressionAttributeValues={
                 ':deletion_date': {'S': str(datetime.datetime.now().isoformat())}
-            },
-            ReturnValues="ALL_NEW"
+            }
         )
-
-        # Delete the file from S3
-        s3.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=file_deleted.filename)
 
         return JSONResponse(content={"message": "File deleted successfully"}, status_code=200)
     except s3.exceptions.NoSuchKey:
-        raise HTTPException(status_code=404, detail="File not found")
+        raise HTTPException(status_code=404, detail="File not found in S3")
     except NoCredentialsError:
         raise HTTPException(status_code=500, detail="AWS credentials not available")
     except ClientError as e:
