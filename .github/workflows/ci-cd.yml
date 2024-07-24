@@ -25,28 +25,28 @@ jobs:
             scp -i id_rsa -o StrictHostKeyChecking=no .env $USER@$HOST:/home/$USER/myfastapiapp/.env
 
             # Forcer l'arrêt et la suppression des conteneurs existants
-            ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
+            # ssh -i id_rsa -o StrictHostKeyChecking=no $USER@$HOST << EOF
 
               # Stop and remove the existing container if it exists
-              docker stop myfastapi || true
-              docker rm myfastapi || true
+            docker stop myfastapi || true
+            docker rm myfastapi || true
 
-              # Navigate to the application directory
-              cd /home/ec2-user/myfastapiapp
+            # Navigate to the application directory
+            cd /home/ec2-user/myfastapiapp
 
-              # Pull
-              git pull origin main
+            # Pull
+            git pull origin main
 
-              # Build the Docker image
-              docker build -t myfastapi:latest .
+            # Build the Docker image
+            docker build -t myfastapi:latest .
 
-              # Run the Docker container
-              docker run -d --name myfastapi -p 8000:8000 -e AWS_REGION=${{ secrets.AWS_REGION }} \
-              -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-              -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-              -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
-                myfastapi:latest
-             EOF
+            # Run the Docker container
+            docker run -d --name myfastapi -p 8000:8000 -e AWS_REGION=${{ secrets.AWS_REGION }} \
+            -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
+              myfastapi:latest
+          EOF
       # - name: Set up Docker Buildx
       #   uses: docker/setup-buildx-action@v2
 
