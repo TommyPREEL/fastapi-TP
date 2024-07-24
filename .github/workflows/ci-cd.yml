@@ -46,7 +46,7 @@ jobs:
             -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
             -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
               myfastapi:latest
-          EOF
+            EOF
       # - name: Set up Docker Buildx
       #   uses: docker/setup-buildx-action@v2
 
