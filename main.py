@@ -112,17 +112,29 @@ async def download_file(request: Request, filename: str):
 @app.delete("/api/file/{file_id}")
 async def delete_file(request: Request, file_id: str):
     try:
+        # Delete the file from S3
         s3.delete_object(Bucket=AWS_S3_BUCKET_NAME, Key=file_id)
-        dynamodb.put_item(
+
+        # Record the deletion date in DynamoDB
+        dynamodb.update_item(
             TableName="FileUpload",
             Key={'id': {'S': file_id}},
-            Item={'deletion_date': {'S': datetime.datetime.now().isoformat()}}
+            UpdateExpression="SET deletion_date = :deletion_date",
+            ExpressionAttributeValues={
+                ':deletion_date': {'S': datetime.datetime.now()}
+            }
         )
-        return JSONResponse(content={"message": "File uploaded successfully"}, status_code=200)
+
+        return JSONResponse(content={"message": "File deleted successfully"}, status_code=200)
+    except s3.exceptions.NoSuchKey:
+        raise HTTPException(status_code=404, detail="File not found")
     except NoCredentialsError:
-        raise HTTPException(status_code=500, detail="Credentials not available")
+        raise HTTPException(status_code=500, detail="AWS credentials not available")
     except ClientError as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload file: {e}")
+        error_message = e.response['Error'].get('Message', 'An error occurred')
+        raise HTTPException(status_code=500, detail=f"S3 error: {error_message}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 if __name__ == '__main__':
     import uvicorn
