@@ -42,6 +42,7 @@ s3 = boto3.client('s3',
 # Nom du bucket S3
 AWS_S3_BUCKET_NAME = os.getenv('AWS_S3_BUCKET_NAME')
 
+
 # dynamodb = boto3.resource('dynamodb', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
 dynamodb = boto3.client('dynamodb',
