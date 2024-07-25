@@ -1,64 +1,51 @@
-# from fastapi import FastAPI
-
-# app = FastAPI()
-
-# @app.get("/ping")
-# async def ping():
-#     return "pong"
-
-# @app.get("/pong")
-# async def ping():
-#     return "ping"
-
-import logging
 import uuid
-from fastapi import FastAPI, Request, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
-import boto3
-from botocore.exceptions import NoCredentialsError, ClientError, PartialCredentialsError
-from fastapi.responses import StreamingResponse
-import io
-from dotenv import load_dotenv
 import os
 import datetime
-# Charger les variables d'environnement depuis le fichier .env
-load_dotenv()
+import io
+from fastapi import FastAPI, Request, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse, StreamingResponse
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError, PartialCredentialsError
+from dotenv import load_dotenv
 
+
+# Create fast API instance
 app = FastAPI()
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Load environment variables
+load_dotenv()
 
+# Set environment variables
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 AWS_REGION = os.getenv('AWS_REGION')
-# Configuration de Boto3
-s3 = boto3.client('s3',
-                  aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-                  aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
-                  region_name=os.getenv('AWS_REGION'),
-                  )
-
-# Nom du bucket S3
 AWS_S3_BUCKET_NAME = os.getenv('AWS_S3_BUCKET_NAME')
 
+# Boto3 configuration for S3
+s3 = boto3.client('s3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION'),
+)
 
-# dynamodb = boto3.resource('dynamodb', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
-
+# Boto3 configuration for dynamodb
 dynamodb = boto3.client('dynamodb',
-                  aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-                  aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
-                  region_name=os.getenv('AWS_REGION'),
-                  )
-print(os.getenv('AWS_ACCESS_KEY_ID'))
-print(os.getenv('AWS_SECRET_ACCESS_KEY'))
-print(os.getenv('AWS_S3_BUCKET_NAME'))
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=os.getenv('AWS_REGION'),
+)
 
+
+# This endpoint is used for testing.
+# It just responding 'pong'
 @app.get("/ping")
 async def ping():
     return "pong"
 
+
+# This endpoint allows to upload a file
+# @input (UploadFile) file - The file to upload
+# @return None
 @app.post("/api/file")
 async def upload_file(file: UploadFile = File(...)):
     try:
@@ -79,15 +66,22 @@ async def upload_file(file: UploadFile = File(...)):
     except ClientError as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload file: {e}")
 
+
+# This endpoint allows to download a file
+# @input [PathParameters] (str) filename - The file to download
+# @return None
 @app.get("/api/file/{filename}")
 async def download_file(request: Request, filename: str):
     try:
+        # Get the file from the S3
         file_obj = io.BytesIO()
         s3.download_fileobj(AWS_S3_BUCKET_NAME, filename, file_obj)
         file_obj.seek(0)
 
+        # Get the client IP
         downloader_ip = request.client.host
 
+        # Insert file info in dynamoDB
         dynamodb.put_item(
             TableName="FileDownload",
             Item={
@@ -109,6 +103,9 @@ async def download_file(request: Request, filename: str):
         raise HTTPException(status_code=500, detail=str(e))
     
 
+# This endpoint allows to delete a file
+# @input [PathParameters] (str) file_id - The file id to delete
+# @return None
 @app.delete("/api/file/{file_id}")
 async def delete_file(request: Request, file_id: str):
     try:
@@ -153,6 +150,10 @@ async def delete_file(request: Request, file_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
+
+# This endpoint allows to see all the files available in S3
+# @input None
+# @return None
 @app.get("/api/files")
 async def get_files(request: Request):
     try:
@@ -164,7 +165,6 @@ async def get_files(request: Request):
                 ':empty': {'S': ''}
             }
         )
-
         
         # Extract file details from the response
         files = []
